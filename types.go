@@ -35,18 +35,41 @@ type GenerateTokenResponse struct {
 
 // VerifySessionRequest specifies the client telemetry and tokens for physical verification.
 type VerifySessionRequest struct {
-	VenueID          string   `json:"venue_id"`
-	TokenID          string   `json:"token_id"`
-	ClientToken      string   `json:"client_token"`
-	Latitude         float64  `json:"latitude"`
-	Longitude        float64  `json:"longitude"`
-	Accuracy         float64  `json:"accuracy"`
-	Altitude         *float64 `json:"altitude,omitempty"`
-	Speed            *float64 `json:"speed,omitempty"`
-	Heading          *float64 `json:"heading,omitempty"`
-	AttestationToken string   `json:"attestation_token,omitempty"`
-	VisualProofToken string   `json:"visual_proof_token,omitempty"`
-	ClientIP         string   `json:"client_ip,omitempty"`
+	VenueID          string              `json:"venue_id"`
+	TokenID          string              `json:"token_id"`
+	ClientToken      string              `json:"client_token"`
+	Latitude         float64             `json:"latitude"`
+	Longitude        float64             `json:"longitude"`
+	Accuracy         float64             `json:"accuracy"`
+	Altitude         *float64            `json:"altitude,omitempty"`
+	Speed            *float64            `json:"speed,omitempty"`
+	Heading          *float64            `json:"heading,omitempty"`
+	AttestationToken string              `json:"attestation_token,omitempty"`
+	VisualProofToken string              `json:"visual_proof_token,omitempty"`
+	VisualProof      *VisualProofPayload `json:"visual_proof,omitempty"`
+	ClientIP         string              `json:"client_ip,omitempty"`
+}
+
+// VisualProofPayload represents client photo telemetry for forensic binding.
+type VisualProofPayload struct {
+	ImageHashSHA256 string  `json:"image_hash_sha256"`
+	StorageKey      string  `json:"storage_key"`
+	CapturedAt      string  `json:"captured_at"`
+	LivenessScore   float64 `json:"liveness_score,omitempty"`
+}
+
+// VerifyIntentRequest payload to acquire presigned visual proof upload URL.
+type VerifyIntentRequest struct {
+	VenueID   string `json:"venue_id"`
+	SessionID string `json:"session_id,omitempty"`
+}
+
+// VerifyIntentResponse provides presigned upload coordinates.
+type VerifyIntentResponse struct {
+	UploadURL  string `json:"upload_url"`
+	StorageKey string `json:"storage_key"`
+	ExpiresIn  int    `json:"expires_in_seconds"`
+	Provider   string `json:"provider"`
 }
 
 // VisualProofSummary encapsulates forensic visual verification results.
@@ -74,36 +97,74 @@ type VerifySessionResponse struct {
 
 // Venue represents a physical perimeter enrolled in setsig.
 type Venue struct {
-	ID                string    `json:"id"`
-	TenantID          string    `json:"tenant_id"`
-	Name              string    `json:"name"`
-	Latitude          float64   `json:"latitude"`
-	Longitude         float64   `json:"longitude"`
-	RadiusMeters      float64   `json:"radius_meters"`
-	StrictAttestation bool      `json:"strict_attestation"`
-	StrictVisualProof bool      `json:"strict_visual_proof"`
-	DynamicSeedSecret string    `json:"dynamic_seed_secret,omitempty"`
-	Status            string    `json:"status"`
-	CreatedAt         time.Time `json:"created_at"`
-	UpdatedAt         time.Time `json:"updated_at"`
+	ID                string                 `json:"id"`
+	TenantID          string                 `json:"tenant_id"`
+	ReferenceID       string                 `json:"reference_id,omitempty"`
+	Name              string                 `json:"name"`
+	CountryCode       string                 `json:"country_code,omitempty"`
+	Latitude          float64                `json:"latitude"`
+	Longitude         float64                `json:"longitude"`
+	RadiusMeters      float64                `json:"radius_meters"`
+	HardwareProfile   string                 `json:"hardware_profile,omitempty"`
+	HardwareConfig    map[string]interface{} `json:"hardware_config,omitempty"`
+	StrictAttestation bool                   `json:"strict_attestation"`
+	StrictVisualProof bool                   `json:"strict_visual_proof"`
+	VisualProofPrompt string                 `json:"visual_proof_prompt,omitempty"`
+	DynamicSeedSecret string                 `json:"dynamic_seed_secret,omitempty"`
+	Status            string                 `json:"status"`
+	CreatedAt         time.Time              `json:"created_at"`
+	UpdatedAt         time.Time              `json:"updated_at"`
 }
 
 // CreateVenueRequest holds parameters to enroll a new venue.
 type CreateVenueRequest struct {
-	Name              string  `json:"name"`
-	Latitude          float64 `json:"latitude"`
-	Longitude         float64 `json:"longitude"`
-	RadiusMeters      float64 `json:"radius_meters"`
-	StrictAttestation bool    `json:"strict_attestation"`
-	StrictVisualProof bool    `json:"strict_visual_proof"`
+	Name              string                 `json:"name"`
+	ReferenceID       string                 `json:"reference_id,omitempty"`
+	CountryCode       string                 `json:"country_code,omitempty"`
+	Latitude          float64                `json:"latitude"`
+	Longitude         float64                `json:"longitude"`
+	RadiusMeters      float64                `json:"radius_meters"`
+	HardwareProfile   string                 `json:"hardware_profile,omitempty"`
+	HardwareConfig    map[string]interface{} `json:"hardware_config,omitempty"`
+	StrictAttestation bool                   `json:"strict_attestation"`
+	StrictVisualProof bool                   `json:"strict_visual_proof"`
+	VisualProofPrompt string                 `json:"visual_proof_prompt,omitempty"`
 }
 
 // UpdateVenueRequest allows partial updates to an existing venue.
 type UpdateVenueRequest struct {
-	Name              *string  `json:"name,omitempty"`
-	RadiusMeters      *float64 `json:"radius_meters,omitempty"`
-	StrictAttestation *bool    `json:"strict_attestation,omitempty"`
-	StrictVisualProof *bool    `json:"strict_visual_proof,omitempty"`
+	Name              *string                 `json:"name,omitempty"`
+	ReferenceID       *string                 `json:"reference_id,omitempty"`
+	CountryCode       *string                 `json:"country_code,omitempty"`
+	RadiusMeters      *float64                `json:"radius_meters,omitempty"`
+	HardwareProfile   *string                 `json:"hardware_profile,omitempty"`
+	HardwareConfig    *map[string]interface{} `json:"hardware_config,omitempty"`
+	StrictAttestation *bool                   `json:"strict_attestation,omitempty"`
+	StrictVisualProof *bool                   `json:"strict_visual_proof,omitempty"`
+	VisualProofPrompt *string                 `json:"visual_proof_prompt,omitempty"`
+}
+
+// RotateSecretResponse delivers the new secret seed preview after secret rotation.
+type RotateSecretResponse struct {
+	Status            string `json:"status"`
+	NewSecretPreview  string `json:"new_secret_preview"`
+	OldKeyInvalidated bool   `json:"old_key_invalidated"`
+	RotatedAt         string `json:"rotated_at"`
+}
+
+// TerminalSessionRequest implements v0.55 Section 5.3 Gatekeeper Terminal authentication.
+type TerminalSessionRequest struct {
+	TerminalKey string `json:"terminal_key"`
+	VenueID     string `json:"venue_id"`
+}
+
+// TerminalSessionResponse returned upon successful kiosk/turnstile terminal login.
+type TerminalSessionResponse struct {
+	Status               string `json:"status"`
+	TerminalSessionToken string `json:"terminal_session_token"`
+	VenueName            string `json:"venue_name"`
+	TOTPIntervalSeconds  int    `json:"totp_interval_seconds"`
+	Scope                string `json:"scope"`
 }
 
 // ListVenuesOptions provides pagination for listing venues.

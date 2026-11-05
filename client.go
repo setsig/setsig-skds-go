@@ -68,6 +68,7 @@ type Client struct {
 	Venues   *VenuesService
 	Billing  *BillingService
 	Webhooks *WebhooksService
+	Terminals *TerminalsService
 }
 
 // NewClient initializes a new setsig client with the provided API key and optional configurations.
@@ -98,6 +99,7 @@ func NewClient(apiKey string, opts ...Option) (*Client, error) {
 	c.Venues = &VenuesService{client: c}
 	c.Billing = &BillingService{client: c}
 	c.Webhooks = &WebhooksService{client: c}
+	c.Terminals = &TerminalsService{client: c}
 
 	return c, nil
 }

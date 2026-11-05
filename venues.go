@@ -75,3 +75,14 @@ func (s *VenuesService) Delete(ctx context.Context, id string) error {
 	return s.client.doRequest(ctx, http.MethodDelete, path, nil, nil)
 }
 
+// RotateSecret rotates the cryptographic TOTP seed for a venue.
+func (s *VenuesService) RotateSecret(ctx context.Context, id string) (*RotateSecretResponse, error) {
+	path := fmt.Sprintf("/v1/venues/%s/rotate-secret", id)
+	var resp RotateSecretResponse
+	err := s.client.doRequest(ctx, http.MethodPost, path, nil, &resp)
+	if err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
