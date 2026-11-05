@@ -21,9 +21,10 @@ var (
 
 // APIError represents an error returned by the setsig API.
 type APIError struct {
-	StatusCode int    `json:"status_code"`
-	Code       string `json:"code"`
-	Message    string `json:"message"`
+	StatusCode int                    `json:"status_code"`
+	Code       string                 `json:"code"`
+	Message    string                 `json:"message"`
+	Details    map[string]interface{} `json:"details,omitempty"`
 }
 
 func (e *APIError) Error() string {
@@ -40,6 +41,52 @@ type AuthenticationError struct {
 
 // InsufficientCreditsError indicates balance depletion on account.
 type InsufficientCreditsError struct {
+	APIError
+}
+
+// PaywallBlockedError indicates verification services are locked due to zero/negative prepaid credits.
+type PaywallBlockedError struct {
+	APIError
+	PaywallURL       string  `json:"paywall_url"`
+	CurrentBalance   float64 `json:"current_balance"`
+	RequiredMinTopup float64 `json:"required_min_topup"`
+	Currency         string  `json:"currency"`
+}
+
+func (e *PaywallBlockedError) Error() string {
+	return fmt.Sprintf("setsig paywall locked (HTTP %d - %s): %s (top up at %s)", e.StatusCode, e.Code, e.Message, e.PaywallURL)
+}
+
+// CrossBorderCreditRequiredError indicates verification attempted on foreign venue without requisite currency credits.
+type CrossBorderCreditRequiredError struct {
+	APIError
+	VenueCountry string `json:"venue_country"`
+	BillingZone  string `json:"billing_zone"`
+}
+
+// PaywallTierRequiredError indicates feature access requires a higher tier plan or subscription.
+type PaywallTierRequiredError struct {
+	APIError
+	RequiredTier string `json:"required_tier"`
+}
+
+// AttestationFailedError indicates hardware enclave attestation forgery or rooted device.
+type AttestationFailedError struct {
+	APIError
+}
+
+// VisualProofRequiredError indicates venue mandates photographic proof of presence.
+type VisualProofRequiredError struct {
+	APIError
+}
+
+// StaleVisualProofError indicates camera capture timestamp exceeded 10-second cryptographic tolerance window.
+type StaleVisualProofError struct {
+	APIError
+}
+
+// InvalidImageHashError indicates photo SHA-256 hash does not match storage upload.
+type InvalidImageHashError struct {
 	APIError
 }
 
@@ -65,4 +112,3 @@ func (e *RateLimitError) Error() string {
 	}
 	return fmt.Sprintf("setsig rate limit exceeded (HTTP %d): %s", e.StatusCode, e.Message)
 }
-

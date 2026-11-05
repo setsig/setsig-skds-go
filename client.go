@@ -183,9 +183,10 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body any, t
 
 		// Parse API error envelope
 		var errEnv struct {
-			Error   string `json:"error"`
-			Message string `json:"message"`
-			Code    string `json:"code"`
+			Error   string      `json:"error"`
+			Message string      `json:"message"`
+			Code    string      `json:"code"`
+			Details interface{} `json:"details,omitempty"`
 		}
 		_ = json.Unmarshal(respBytes, &errEnv)
 		errMsg := errEnv.Message
@@ -228,19 +229,56 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body any, t
 			continue
 		}
 
-		// Map status codes to specific client errors
-		switch resp.StatusCode {
-		case http.StatusUnauthorized, http.StatusForbidden:
+		// Map status codes and error codes to specific client errors
+		switch {
+		case errEnv.Code == "ERR_PAYWALL_BLOCKED":
+			var paywallURL string
+			var curBal, reqDeposit float64
+			var curr string
+			if d, ok := errEnv.Details.(map[string]interface{}); ok {
+				if u, ok := d["paywall_url"].(string); ok {
+					paywallURL = u
+				}
+				if b, ok := d["current_balance"].(float64); ok {
+					curBal = b
+				}
+				if r, ok := d["required_min_topup"].(float64); ok {
+					reqDeposit = r
+				}
+				if c, ok := d["currency"].(string); ok {
+					curr = c
+				}
+			}
+			return &PaywallBlockedError{
+				APIError:         baseErr,
+				PaywallURL:       paywallURL,
+				CurrentBalance:   curBal,
+				RequiredMinTopup: reqDeposit,
+				Currency:         curr,
+			}
+		case errEnv.Code == "ERR_CROSS_BORDER_CREDIT_REQUIRED":
+			return &CrossBorderCreditRequiredError{APIError: baseErr}
+		case errEnv.Code == "ERR_PAYWALL_TIER_REQUIRED":
+			return &PaywallTierRequiredError{APIError: baseErr}
+		case errEnv.Code == "ERR_ATTESTATION_FAILED":
+			return &AttestationFailedError{APIError: baseErr}
+		case errEnv.Code == "ERR_VISUAL_PROOF_REQUIRED":
+			return &VisualProofRequiredError{APIError: baseErr}
+		case errEnv.Code == "ERR_STALE_VISUAL_PROOF":
+			return &StaleVisualProofError{APIError: baseErr}
+		case errEnv.Code == "ERR_INVALID_IMAGE_HASH":
+			return &InvalidImageHashError{APIError: baseErr}
+		case resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden:
 			return &AuthenticationError{APIError: baseErr}
-		case http.StatusPaymentRequired:
+		case resp.StatusCode == http.StatusPaymentRequired:
 			return &InsufficientCreditsError{APIError: baseErr}
-		case http.StatusConflict:
-			if errEnv.Code == "DOUBLE_SPEND_REPLAY_ATTACK" || strings.Contains(strings.ToLower(errMsg), "replay") {
+		case resp.StatusCode == http.StatusConflict:
+			if errEnv.Code == "DOUBLE_SPEND_REPLAY_ATTACK" || errEnv.Code == "ERR_REPLAY_DETECTED" || strings.Contains(strings.ToLower(errMsg), "replay") {
 				return &ReplayAttackError{APIError: baseErr}
 			}
 			return &baseErr
-		case http.StatusUnprocessableEntity:
-			if strings.Contains(strings.ToLower(errMsg), "geofence") || strings.Contains(strings.ToLower(errMsg), "distance") {
+		case resp.StatusCode == http.StatusUnprocessableEntity || resp.StatusCode == http.StatusBadRequest:
+			if errEnv.Code == "ERR_GEOFENCE_OUT_OF_BOUNDS" || strings.Contains(strings.ToLower(errMsg), "geofence") || strings.Contains(strings.ToLower(errMsg), "distance") {
 				return &GeofenceOutOfBoundsError{APIError: baseErr}
 			}
 			return &baseErr
