@@ -95,7 +95,7 @@ fmt.Printf("Session %s VERIFIED! Distance: %.2fm, Risk Score: %.4f\n",
 
 ### 3. Verify Incoming Webhooks (Timing-Safe Constant Time Comparison)
 
-Patent-protected replay resistance and timing attack mitigation:
+Cryptographic replay resistance and timing attack mitigation:
 
 ```go
 package main

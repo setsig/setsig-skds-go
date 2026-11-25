@@ -136,9 +136,10 @@ func WebhookHandler(secret string, fn HandlerFunc, tolerance ...time.Duration) h
 			return
 		}
 
+		r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
-			http.Error(w, "Error reading request body", http.StatusInternalServerError)
+			http.Error(w, "Request body too large or unreadable", http.StatusRequestEntityTooLarge)
 			return
 		}
 		defer r.Body.Close()
