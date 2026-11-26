@@ -154,6 +154,7 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body any, t
 		httpReq.Header.Set("Content-Type", "application/json")
 		httpReq.Header.Set("Accept", "application/json")
 		httpReq.Header.Set("User-Agent", UserAgent)
+		httpReq.Header.Set("X-Setsig-Client", "sdk-go/"+SDKVersion)
 		if idempotencyKey != "" {
 			httpReq.Header.Set("Idempotency-Key", idempotencyKey)
 		}
